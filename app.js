@@ -59,6 +59,11 @@ function updateLanguage() {
       el.textContent = el.dataset[language];
     }
   });
+  document.querySelectorAll("[data-placeholder-en]").forEach(el => {
+    if (el.dataset[`placeholder${language === "ar" ? "Ar" : "En"}`]) {
+      el.placeholder = el.dataset[`placeholder${language === "ar" ? "Ar" : "En"}`];
+    }
+  });
 
   const locale = language === "ar" ? "ar-EG" : "en-US";
   safeSetText("monthText", eventDate.toLocaleDateString(locale, { month: "long" }));
@@ -74,6 +79,7 @@ if (langBtn) {
   langBtn.addEventListener("click", () => {
     language = language === "en" ? "ar" : "en";
     updateLanguage();
+    if (byId("wishList")) loadWishes();
   });
 }
 
@@ -165,32 +171,99 @@ if (copyBtn) copyBtn.addEventListener("click", async () => {
   } catch (err) {}
 });
 
-// Guest Wish
+// Saved guest wishes
+const wishForm = byId("wishForm");
 const wishBtn = byId("wishBtn");
-if (wishBtn) {
-  wishBtn.addEventListener("click", async () => {
-    const nameInput = byId("guestName");
-    const wishInput = byId("guestWish");
-    const preview = byId("wishPreview");
-    const name = (nameInput ? nameInput.value.trim() : "") || (language === "ar" ? "محبّوكم" : "Your guest");
-    const wish = wishInput ? wishInput.value.trim() : "";
+const wishPreview = byId("wishPreview");
+const wishList = byId("wishList");
 
-    const message = language === "ar"
-      ? `${invitation.groomNameAr} و${invitation.brideNameAr}، مبارك لكما وبالرفاه والبنين، بارك الله لكما وبارك عليكما وجمع بينكما في خير. — ${name}${wish ? "\n" + wish : ""}`
-      : `Dear ${invitation.groomName} & ${invitation.brideName}, wishing you a lifetime of endless love and happiness. — ${name}${wish ? "\n" + wish : ""}`;
+function wishDate(value) {
+  try {
+    return new Intl.DateTimeFormat(language === "ar" ? "ar-EG" : "en-US", {
+      day: "numeric", month: "short", year: "numeric"
+    }).format(new Date(value));
+  } catch (_) {
+    return "";
+  }
+}
 
-    if (preview) {
-      preview.textContent = message;
-      preview.classList.add("show");
-    }
-    try {
-      await navigator.clipboard.writeText(message);
-      wishBtn.textContent = language === "ar" ? "تم نسخ التهنئة بنجاح ✓" : "Wish copied to clipboard ✓";
-    } catch (e) {}
-    setTimeout(() => {
-      wishBtn.textContent = wishBtn.dataset[language] || (language === "ar" ? "جهّز وانسخ رسالتي" : "Prepare and copy my wish");
-    }, 2500);
+function renderWishes(wishes = []) {
+  if (!wishList) return;
+  wishList.replaceChildren();
+  if (!wishes.length) {
+    const empty = document.createElement("p");
+    empty.className = "wish-empty";
+    empty.textContent = language === "ar" ? "كونوا أول من يترك تهنئة جميلة للعروسين." : "Be the first to leave the couple a lovely wish.";
+    wishList.append(empty);
+    return;
+  }
+  wishes.forEach(wish => {
+    const article = document.createElement("blockquote");
+    article.className = "wish-item";
+    const message = document.createElement("p");
+    message.textContent = wish.message;
+    const meta = document.createElement("footer");
+    const name = document.createElement("strong");
+    name.textContent = wish.name;
+    const date = document.createElement("time");
+    date.dateTime = wish.createdAt;
+    date.textContent = wishDate(wish.createdAt);
+    meta.append(name, date);
+    article.append(message, meta);
+    wishList.append(article);
   });
+}
+
+async function loadWishes() {
+  if (!wishList) return;
+  try {
+    const response = await fetch("/api/wishes", { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("unavailable");
+    const data = await response.json();
+    renderWishes(data.wishes);
+  } catch (_) {
+    wishList.innerHTML = "";
+    const empty = document.createElement("p");
+    empty.className = "wish-empty";
+    empty.textContent = language === "ar" ? "تعذّر تحميل التهاني الآن. حاولوا مرة أخرى بعد قليل." : "Wishes are unavailable right now. Please try again shortly.";
+    wishList.append(empty);
+  }
+}
+
+if (wishForm && wishBtn) {
+  wishForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const name = byId("guestName").value.trim();
+    const message = byId("guestWish").value.trim();
+    const company = byId("company").value;
+    if (!name || !message) return;
+
+    wishBtn.disabled = true;
+    wishBtn.textContent = language === "ar" ? "جارٍ حفظ تهنئتكم…" : "Saving your wish…";
+    wishPreview.className = "wish-preview";
+    try {
+      const response = await fetch("/api/wishes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ name, message, company })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "save_failed");
+      wishPreview.textContent = language === "ar" ? "وصلت تهنئتكم الجميلة، شكرًا لمشاركتنا الفرحة ♡" : "Your lovely wish has been saved. Thank you for celebrating with us ♡";
+      wishPreview.className = "wish-preview show";
+      wishForm.reset();
+      await loadWishes();
+    } catch (error) {
+      wishPreview.textContent = error.message === "rate_limited"
+        ? (language === "ar" ? "تم إرسال تهنئة منذ لحظات. حاولوا مرة أخرى بعد قليل." : "A wish was just sent. Please wait a moment and try again.")
+        : (language === "ar" ? "لم نتمكن من حفظ التهنئة الآن. ستظل رسالتكم هنا لتعيدوا المحاولة." : "We could not save your wish yet. Your message is still here so you can retry.");
+      wishPreview.className = "wish-preview error";
+    } finally {
+      wishBtn.disabled = false;
+      wishBtn.textContent = wishBtn.dataset[language] || (language === "ar" ? "أرسل تهنئتي للعروسين" : "Save my wish");
+    }
+  });
+  loadWishes();
 }
 
 /* ==============================================================

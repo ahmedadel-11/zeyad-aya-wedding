@@ -165,6 +165,8 @@
       font-family: var(--ar-script);
       font-size: 2.1rem;
       font-weight: 700;
+      line-height: 1.45;
+      padding-block: 0.18em;
     }
     .letter-divider {
       width: 46px;
@@ -525,6 +527,7 @@
       position: relative;
       width: min(65vw, 240px);
       margin: 10px auto 26px;
+      isolation: isolate;
     }
     .arch-frame {
       position: relative;
@@ -560,18 +563,19 @@
     .arch-frame:hover .arch-couple-photo {
       transform: scale(1.04);
     }
-    /* Floral garland hugging the arch */
+    /* Floral garland frames the portrait without covering either face */
     .arch-floral-overlay {
       position: absolute;
-      inset: -38px -32px -20px;
+      inset: -48px -42px -24px;
       background-image: url('assets/ivory-florals.webp');
       background-size: contain;
       background-position: center top;
       background-repeat: no-repeat;
       pointer-events: none;
-      z-index: 3;
-      opacity: 0.88;
-      filter: drop-shadow(0 4px 10px rgba(80, 58, 28, 0.15));
+      z-index: 1;
+      opacity: 0.92;
+      filter: drop-shadow(0 6px 14px rgba(80, 58, 28, 0.16));
+      transform: rotate(-2deg);
     }
     .arch-badge {
       display: inline-flex;
@@ -619,7 +623,9 @@
       font-family: var(--ar-script);
       font-size: clamp(3.2rem, 8vw, 6.2rem);
       font-weight: 700;
+      line-height: 1.45;
       gap: 0.28em;
+      padding-block: 0.2em;
       clip-path: inset(0 0 0 100%);
       transition: clip-path 2.4s cubic-bezier(0.25, 1, 0.5, 1) 0.8s;
     }
@@ -634,6 +640,12 @@
       background-clip: text;
       color: transparent;
       -webkit-text-fill-color: transparent;
+    }
+    body[dir="rtl"] .names-ink-draw .name-item {
+      /* Arabic dots and vowel marks need extra ink space around the glyph box. */
+      padding: 0.08em 0.04em 0.14em;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
     }
     .names-ink-draw .name-sep {
       font-family: var(--script);
@@ -765,12 +777,25 @@
     .map-frame iframe { width: 100%; height: 100%; border: 0; border-radius: 4px; filter: sepia(0.12) saturate(0.85); }
 
     .wish { background: var(--ivory); text-align: center; position: relative; overflow: hidden; }
-    .wish-card { max-width: 700px; margin: 42px auto 0; border: 1px solid var(--line); background: #fffdfb; padding: clamp(28px, 5vw, 54px); box-shadow: 0 28px 70px rgba(81, 62, 31, 0.08); text-align: start; border-radius: 8px; }
+    .wish-card { max-width: 700px; margin: 42px auto 0; border: 1px solid var(--line); background: #fffdfb; padding: clamp(28px, 5vw, 54px); box-shadow: 0 28px 70px rgba(81, 62, 31, 0.08); text-align: start; border-radius: 12px; }
     .wish-card label { display: block; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: #7a6a52; margin: 18px 0 8px; font-weight: 600; }
-    .field { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 12px 4px; color: var(--ink); outline: 0; font-size: 1rem; }
-    .field:focus { border-color: var(--gold); }
-    .wish-preview { display: none; margin-top: 22px; background: #f5eee2; padding: 18px; color: #5f5445; line-height: 1.8; border-radius: 4px; }
+    .field { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 13px 14px; color: var(--ink); outline: 0; font-size: 1rem; transition: border-color .2s ease, box-shadow .2s ease; }
+    .field:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(179,138,74,.12); }
+    .field::placeholder { color: #9b8f7e; opacity: 1; }
+    textarea.field { resize: vertical; min-height: 112px; line-height: 1.7; }
+    .wish-preview { display: none; margin-top: 22px; background: #f5eee2; padding: 18px; color: #5f5445; line-height: 1.8; border-radius: 8px; }
     .wish-preview.show { display: block; }
+    .wish-preview.error { display: block; background: #fff1ed; color: #8a3f2d; }
+    #wishBtn:disabled { cursor: wait; opacity: .72; transform: none; }
+    .wish-feed { max-width: 700px; margin: 28px auto 0; text-align: start; }
+    .wish-feed-title { font-family: var(--ar); font-size: 1.35rem; color: #5b4931; margin: 0 0 14px; text-align: center; }
+    body[dir="ltr"] .wish-feed-title { font-family: var(--serif); font-size: 1.55rem; }
+    .wish-list { display: grid; gap: 12px; }
+    .wish-item { margin: 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,253,251,.9); box-shadow: 0 10px 28px rgba(81,62,31,.05); }
+    .wish-item p { margin: 0; color: #574c3e; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .wish-item footer { display: flex; justify-content: space-between; gap: 12px; padding: 0; margin-top: 10px; background: none; color: #8a7658; font-size: .8rem; text-align: start; }
+    .wish-empty { margin: 0; padding: 20px; border: 1px dashed var(--line); border-radius: 10px; color: #887d6e; text-align: center; }
+    .wish-honeypot { position: absolute !important; inline-size: 1px !important; block-size: 1px !important; overflow: hidden !important; clip: rect(0 0 0 0) !important; white-space: nowrap !important; }
     .tiny { font-size: 0.75rem; color: #887d6e; margin-top: 14px; text-align: center; }
 
     footer { background: #221f1a; color: #dcd3c3; text-align: center; padding: 76px 22px; }
@@ -779,7 +804,7 @@
     .footer-rings::before { left: 2px; }
     .footer-rings::after { right: 2px; }
     .footer-names { font-family: var(--script); font-size: clamp(3.2rem, 7vw, 4.8rem); color: var(--gold-light); margin: 0; }
-    body[dir="rtl"] .footer-names { font-family: var(--ar-script); font-size: clamp(2.6rem, 6.5vw, 4.2rem); font-weight: 700; }
+    body[dir="rtl"] .footer-names { font-family: var(--ar-script); font-size: clamp(2.6rem, 6.5vw, 4.2rem); font-weight: 700; line-height: 1.45; padding-block: .12em; }
     .footer-date { font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: #a49a8d; margin-top: 20px; }
 
     .reveal { opacity: 0; transform: translateY(24px); transition: 0.85s ease; }
@@ -877,8 +902,8 @@
 
         <!-- COUPLE'S PHOTO ARCH WITH FLOWERS -->
         <div class="arch-couple-showcase">
+          <div class="arch-floral-overlay" aria-hidden="true"></div>
           <div class="arch-frame">
-            <div class="arch-floral-overlay"></div>
             <div class="arch-img-wrap">
               <img src="assets/couple.jpg" alt="زياد وآية" class="arch-couple-photo" loading="eager">
             </div>
@@ -987,16 +1012,22 @@
     <section class="wish">
       <div class="reveal">
         <p class="section-kicker" data-en="A note for the couple" data-ar="رسالة للعروسين">رسالة للعروسين</p>
-        <h2 class="section-title" data-en="Send Your Wishes" data-ar="شاركونا أمنياتكم">شاركونا أمنياتكم</h2>
+        <h2 class="section-title" data-en="A Wish from the Heart" data-ar="كلمة من القلب للعروسين">كلمة من القلب للعروسين</h2>
       </div>
-      <div class="wish-card reveal">
+      <form class="wish-card reveal" id="wishForm">
         <label for="guestName" data-en="Your name" data-ar="اسمك الكريم">اسمك الكريم</label>
-        <input class="field" id="guestName" autocomplete="name" placeholder="أدخل اسمك">
+        <input class="field" id="guestName" name="name" autocomplete="name" maxlength="60" required data-placeholder-en="Enter your name" data-placeholder-ar="اكتب اسمك الكريم" placeholder="اكتب اسمك الكريم">
         <label for="guestWish" data-en="Your message" data-ar="رسالتك وتهنئتك">رسالتك وتهنئتك</label>
-        <textarea class="field" id="guestWish" rows="3" placeholder="أطيب الأمنيات للعروسين..."></textarea>
-        <button class="btn btn-filled" id="wishBtn" style="width:100%;margin-top:25px" data-en="Prepare and copy my wish" data-ar="جهّز وانسخ رسالتي">جهّز وانسخ رسالتي</button>
-        <div class="wish-preview" id="wishPreview"></div>
-        <p class="tiny" data-en="Nothing is sent automatically. You choose where to share it." data-ar="لن يتم إرسال أي شيء تلقائياً. أنت تختار أين ترسل الرسالة.">لن يتم إرسال أي شيء تلقائياً. أنت تختار أين ترسل الرسالة.</p>
+        <textarea class="field" id="guestWish" name="message" rows="4" maxlength="500" required data-placeholder-en="Write a warm wish for Zeyad and Aya…" data-placeholder-ar="اكتب تهنئتك ودعواتك الجميلة لزياد وآية…" placeholder="اكتب تهنئتك ودعواتك الجميلة لزياد وآية…"></textarea>
+        <label class="wish-honeypot" for="company" aria-hidden="true">Company</label>
+        <input class="wish-honeypot" id="company" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button class="btn btn-filled" id="wishBtn" type="submit" style="width:100%;margin-top:25px" data-en="Save my wish" data-ar="أرسل تهنئتي للعروسين">أرسل تهنئتي للعروسين</button>
+        <div class="wish-preview" id="wishPreview" role="status" aria-live="polite"></div>
+        <p class="tiny" data-en="Your message will be saved here for the couple and their guests." data-ar="ستُحفظ رسالتك هنا لتبقى ذكرى جميلة للعروسين وضيوفهما.">ستُحفظ رسالتك هنا لتبقى ذكرى جميلة للعروسين وضيوفهما.</p>
+      </form>
+      <div class="wish-feed reveal" id="wishFeed" aria-live="polite">
+        <h3 class="wish-feed-title" data-en="Your lovely messages" data-ar="رسائلكم الجميلة">رسائلكم الجميلة</h3>
+        <div class="wish-list" id="wishList"><p class="wish-empty" data-en="Loading wishes…" data-ar="جارٍ تحميل التهاني…">جارٍ تحميل التهاني…</p></div>
       </div>
     </section>
   </main>
