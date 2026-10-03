@@ -806,6 +806,9 @@
     .footer-names { font-family: var(--script); font-size: clamp(3.2rem, 7vw, 4.8rem); color: var(--gold-light); margin: 0; }
     body[dir="rtl"] .footer-names { font-family: var(--ar-script); font-size: clamp(2.6rem, 6.5vw, 4.2rem); font-weight: 700; line-height: 1.45; padding-block: .12em; }
     .footer-date { font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: #a49a8d; margin-top: 20px; }
+    .made-by { margin: 18px 0 0; color: #8f867a; font-family: var(--sans); font-size: .78rem; letter-spacing: .04em; }
+    .made-by a { color: var(--gold-light); text-underline-offset: 4px; text-decoration-thickness: 1px; }
+    .made-by a:hover { color: #f1dfbd; }
 
     .reveal { opacity: 0; transform: translateY(24px); transition: 0.85s ease; }
     .reveal.visible { opacity: 1; transform: none; }
@@ -1041,6 +1044,7 @@
       <button class="btn" id="copyBtn" data-en="Copy link" data-ar="انسخ الرابط">انسخ الرابط</button>
     </div>
     <p class="footer-date" id="footerDate">16 October 2026 · Alexandria</p>
+    <p class="made-by">Made with love by <a href="https://linktr.ee/ahmedadelii" target="_blank" rel="noopener noreferrer">Ahmed Adel</a> ♡</p>
     <div id="status" aria-live="polite" style="height:20px;color:#dfc491;font-size:.8rem;margin-top:10px"></div>
   </footer>
 

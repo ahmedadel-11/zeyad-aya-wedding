@@ -1,27 +1,36 @@
-const WISHES_KEY = "zeyad-aya:wishes";
-const MAX_SAVED_WISHES = 200;
+import { createHash, randomUUID } from "node:crypto";
+import { neon } from "@neondatabase/serverless";
 
-function redisConfig() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  return url && token ? { url: url.replace(/\/$/, ""), token } : null;
+let schemaReady;
+
+function database() {
+  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (!connectionString) throw new Error("database_not_configured");
+  return neon(connectionString);
 }
 
-async function redis(command) {
-  const config = redisConfig();
-  if (!config) throw new Error("storage_not_configured");
-  const response = await fetch(config.url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(command)
-  });
-  if (!response.ok) throw new Error("storage_request_failed");
-  const payload = await response.json();
-  if (payload.error) throw new Error("storage_request_failed");
-  return payload.result;
+async function ensureSchema(sql) {
+  if (!schemaReady) {
+    schemaReady = (async () => {
+      await sql`
+        CREATE TABLE IF NOT EXISTS wedding_wishes (
+          id UUID PRIMARY KEY,
+          name VARCHAR(60) NOT NULL,
+          message VARCHAR(500) NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          rate_key VARCHAR(64) UNIQUE
+        )
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS wedding_wishes_created_at_idx
+        ON wedding_wishes (created_at DESC)
+      `;
+    })().catch(error => {
+      schemaReady = null;
+      throw error;
+    });
+  }
+  return schemaReady;
 }
 
 function send(res, status, payload) {
@@ -34,14 +43,34 @@ function clean(value, max) {
   return String(value || "").replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 }
 
+function publicWish(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    message: row.message,
+    createdAt: new Date(row.created_at).toISOString()
+  };
+}
+
 export default async function handler(req, res) {
+  let sql;
+  try {
+    sql = database();
+    await ensureSchema(sql);
+  } catch (error) {
+    console.error("Wish database setup failed:", error.message);
+    return send(res, 503, { error: "storage_unavailable" });
+  }
+
   if (req.method === "GET") {
     try {
-      const rows = await redis(["LRANGE", WISHES_KEY, "0", "11"]);
-      const wishes = (rows || []).map(row => {
-        try { return JSON.parse(row); } catch (_) { return null; }
-      }).filter(Boolean);
-      return send(res, 200, { wishes });
+      const rows = await sql`
+        SELECT id, name, message, created_at
+        FROM wedding_wishes
+        ORDER BY created_at DESC
+        LIMIT 12
+      `;
+      return send(res, 200, { wishes: rows.map(publicWish) });
     } catch (error) {
       console.error("Wish loading failed:", error.message);
       return send(res, 503, { error: "storage_unavailable" });
@@ -61,22 +90,19 @@ export default async function handler(req, res) {
 
   const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
   const clientId = forwarded || req.socket?.remoteAddress || "unknown";
-  const rateKey = `zeyad-aya:wish-rate:${clientId}`;
+  const rateWindow = Math.floor(Date.now() / 20000);
+  const rateKey = createHash("sha256").update(`${clientId}:${rateWindow}`).digest("hex");
+  const id = randomUUID();
 
   try {
-    const allowed = await redis(["SET", rateKey, "1", "EX", "20", "NX"]);
-    if (allowed !== "OK") return send(res, 429, { error: "rate_limited" });
-
-    const wish = {
-      id: crypto.randomUUID(),
-      name,
-      message,
-      createdAt: new Date().toISOString()
-    };
-    await redis(["LPUSH", WISHES_KEY, JSON.stringify(wish)]);
-    await redis(["LTRIM", WISHES_KEY, "0", String(MAX_SAVED_WISHES - 1)]);
-    return send(res, 201, { wish });
+    const rows = await sql`
+      INSERT INTO wedding_wishes (id, name, message, rate_key)
+      VALUES (${id}, ${name}, ${message}, ${rateKey})
+      RETURNING id, name, message, created_at
+    `;
+    return send(res, 201, { wish: publicWish(rows[0]) });
   } catch (error) {
+    if (error.code === "23505") return send(res, 429, { error: "rate_limited" });
     console.error("Wish saving failed:", error.message);
     return send(res, 503, { error: "storage_unavailable" });
   }
