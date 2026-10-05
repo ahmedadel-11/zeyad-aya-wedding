@@ -68,7 +68,6 @@ export default async function handler(req, res) {
         SELECT id, name, message, created_at
         FROM wedding_wishes
         ORDER BY created_at DESC
-        LIMIT 12
       `;
       return send(res, 200, { wishes: rows.map(publicWish) });
     } catch (error) {
