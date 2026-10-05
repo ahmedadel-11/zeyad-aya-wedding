@@ -355,8 +355,13 @@
     #fireworks {
       position: fixed;
       inset: 0;
-      z-index: 85;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      display: block;
+      z-index: 101;
       pointer-events: none;
+      transform: translateZ(0);
     }
 
     /* ==============================================================
@@ -1001,7 +1006,6 @@
         </article>
       </div>
       <div class="actions reveal">
-        <button class="btn" id="calendarBtn" data-en="Add to calendar" data-ar="أضف إلى التقويم">أضف إلى التقويم</button>
         <a class="btn btn-filled" href="https://maps.app.goo.gl/oWRpGfmfggLGXsb99" target="_blank" rel="noopener" data-en="Get directions" data-ar="افتح الاتجاهات">افتح الاتجاهات</a>
       </div>
     </section>

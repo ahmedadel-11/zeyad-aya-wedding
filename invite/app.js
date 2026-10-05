@@ -111,32 +111,6 @@ function updateCountdown() {
 updateCountdown();
 setInterval(updateCountdown, 1000);
 
-// Add to calendar
-const stamp = date => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-const calendarBtn = byId("calendarBtn");
-if (calendarBtn) {
-  calendarBtn.addEventListener("click", () => {
-    const end = new Date(+eventDate + 144e5);
-    const ics = [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "BEGIN:VEVENT",
-      `DTSTART:${stamp(eventDate)}`,
-      `DTEND:${stamp(end)}`,
-      `SUMMARY:Wedding of ${invitation.groomName} & ${invitation.brideName}`,
-      `LOCATION:${invitation.venue}`,
-      `DESCRIPTION:${invitation.mapUrl}`,
-      "END:VEVENT",
-      "END:VCALENDAR"
-    ].join("\r\n");
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
-    link.download = "zeyad-aya-wedding.ics";
-    link.click();
-    URL.revokeObjectURL(link.href);
-  });
-}
-
 function showStatus(text) {
   const el = byId("status");
   if (!el) return;
@@ -273,27 +247,35 @@ const canvas = byId("fireworks");
 const context = canvas.getContext("2d");
 let particles = [];
 let running = false;
+let canvasWidth = innerWidth;
+let canvasHeight = innerHeight;
 
 const goldPalettes = [
-  ["#fceabb", "#d4a24c", "#fff"],
-  ["#dfc491", "#b38a4a", "#fef8ea"],
-  ["#ffd787", "#e0b45c", "#eed3a5"]
+  ["#8a5b12", "#d4a24c", "#fff1bd"],
+  ["#9b6920", "#b38a4a", "#f8d98d"],
+  ["#70420a", "#e0b45c", "#ffd787"]
 ];
 
 function sizeCanvas() {
-  canvas.width = innerWidth * devicePixelRatio;
-  canvas.height = innerHeight * devicePixelRatio;
-  context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  canvasWidth = Math.round(window.visualViewport?.width || document.documentElement.clientWidth || innerWidth);
+  canvasHeight = Math.round(window.visualViewport?.height || document.documentElement.clientHeight || innerHeight);
+  const pixelRatio = Math.min(devicePixelRatio || 1, 2);
+  canvas.style.width = `${canvasWidth}px`;
+  canvas.style.height = `${canvasHeight}px`;
+  canvas.width = Math.round(canvasWidth * pixelRatio);
+  canvas.height = Math.round(canvasHeight * pixelRatio);
+  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 }
 
 function burst(x, y) {
   const palette = goldPalettes[Math.floor(Math.random() * goldPalettes.length)];
   const spin = Math.random() * Math.PI * 2;
+  const mobileBoost = matchMedia("(max-width: 768px)").matches ? 1.3 : 1;
 
   // 1. Fireworks sparks
   for (let i = 0; i < 54; i++) {
     const angle = spin + i * (Math.PI / 27);
-    const speed = i % 2 ? 3 : 5.5;
+    const speed = (i % 2 ? 3.2 : 5.8) * mobileBoost;
     particles.push({
       type: "spark",
       x, y,
@@ -303,7 +285,7 @@ function burst(x, y) {
       decay: 0.965,
       friction: 0.97,
       gravity: 0.05,
-      radius: Math.random() * 2 + 1.2,
+      radius: (Math.random() * 2.2 + 1.6) * mobileBoost,
       color: palette[i % palette.length]
     });
   }
@@ -317,8 +299,8 @@ function burst(x, y) {
     decay: 0.8,
     friction: 1,
     gravity: 0,
-    radius: 12,
-    color: "#fff7df"
+    radius: 14 * mobileBoost,
+    color: "#e6b858"
   });
 
   // 3. Romantic falling petals
@@ -356,7 +338,7 @@ function burst(x, y) {
 function renderParticles() {
   context.globalCompositeOperation = "destination-out";
   context.fillStyle = "rgba(0, 0, 0, 0.22)";
-  context.fillRect(0, 0, innerWidth, innerHeight);
+  context.fillRect(0, 0, canvasWidth, canvasHeight);
   context.globalCompositeOperation = "source-over";
 
   particles = particles.filter(p => p.life > 0.03);
@@ -406,7 +388,7 @@ function renderParticles() {
     requestAnimationFrame(renderParticles);
   } else {
     running = false;
-    context.clearRect(0, 0, innerWidth, innerHeight);
+    context.clearRect(0, 0, canvasWidth, canvasHeight);
   }
 }
 
@@ -556,3 +538,4 @@ if (envelopeBox) {
 
 sizeCanvas();
 addEventListener("resize", sizeCanvas);
+window.visualViewport?.addEventListener("resize", sizeCanvas);
